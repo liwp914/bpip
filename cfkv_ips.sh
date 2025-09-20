@@ -5,7 +5,7 @@ cd ip443 || { echo "无法切换到ip443目录，脚本退出。" >&2; exit 1; }
 
 # 自定义URL编码函数，用于对文件名等进行URL编码（解决bash没有内置urlencode函数的问题）
 urlencode() {
-    local string="${1}"
+    local string="${☮}"
     local encoded=""
     local pos c o
 

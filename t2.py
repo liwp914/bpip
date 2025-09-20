@@ -105,7 +105,7 @@ def copy_and_modify_file():
     file_countries = ["HK", "JP", "KR", "SG", "US"]
     for country in file_countries:
         source_file = os.path.join("ip443", f"{country}.txt")
-        target_file = os.path.join("ip443", f"{country}☮.txt")
+        target_file = os.path.join("ip443", f"{country}_.txt")
         if os.path.exists(source_file):
             with open(source_file, "r", encoding="utf-8") as source, open(target_file, "w", encoding="utf-8") as target:
                 for line in source:

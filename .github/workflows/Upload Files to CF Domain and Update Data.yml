@@ -51,7 +51,7 @@ jobs:
         FOLDER_PATH="ip443"
 
         # 遍历文件夹中所有匹配 *☮.txt 的文件
-        for FILENAME in "${FOLDER_PATH}"/*1.txt; do
+        for FILENAME in "${FOLDER_PATH}"/*☮.txt; do
           # 检查文件是否存在
           if [ ! -f "$FILENAME" ]; then
             echo "文件不存在: $FILENAME"

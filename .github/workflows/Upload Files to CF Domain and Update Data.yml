@@ -50,7 +50,7 @@ jobs:
         # 指定文件夹路径
         FOLDER_PATH="ip443"
 
-        # 遍历文件夹中所有匹配 *1.txt 的文件
+        # 遍历文件夹中所有匹配 *☮.txt 的文件
         for FILENAME in "${FOLDER_PATH}"/*1.txt; do
           # 检查文件是否存在
           if [ ! -f "$FILENAME" ]; then

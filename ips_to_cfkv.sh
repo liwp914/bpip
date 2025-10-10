@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# 切换到ip-info/443目录（根据新目录结构调整）
+# 切换到ip-info/443目录
 cd ip-info/443 || { echo "无法切换到ip-info/443目录，脚本退出。" >&2; exit 1; }
 
 # 自定义URL编码函数
 urlencode() {
-    local string="$1"  # 修正：使用传入的参数而不是固定值
+    local string="$1"
     local encoded=""
     local pos c o
 
@@ -47,7 +47,7 @@ for FILENAME in "${files[@]}"; do
         line_count=0
         
         while IFS= read -r line; do
-            # 只处理前10行（根据项目需求）
+            # 只处理前10行
             if [ $line_count -lt 10 ]; then
                 BASE64_TEXT+=$(echo -n "$line" | base64 -w 0)
                 line_count=$((line_count + 1))
@@ -55,9 +55,6 @@ for FILENAME in "${files[@]}"; do
                 break
             fi
         done < "$FILENAME"
-        
-        # 对整个内容进行Base64编码
-        BASE64_TEXT=$(echo -n "$BASE64_TEXT" | base64 -w 0)
         
         FILENAME_URL=$(urlencode "$FILENAME")
         URL="https://${CF_DOMAIN}/${FILENAME_URL}?token=${CF_TOKEN}&b64=${BASE64_TEXT}"

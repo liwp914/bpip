@@ -14,6 +14,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Debug current directory
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Files in directory:"
+        ls -la
+        
     - name: Delete old data
       run: |
         rm -rf ./ip*
@@ -35,15 +41,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests pandas tqdm
         
+    - name: Set file permissions
+      run: |
+        chmod +x ips_to_cfkv.sh
+        chmod +x ip_info_collector.py
+        
     - name: Run IP Collector
-      run: python ip_info_collector.py
-      
+      run: |
+        cd $GITHUB_WORKSPACE
+        python ip_info_collector.py
+        
     - name: Run Upload Script
       env:
         CF_DOMAIN: ${{ secrets.CF_DOMAIN }}
         CF_TOKEN: ${{ secrets.CF_TOKEN }}
       run: |
-        chmod +x ips_to_cfkv.sh
+        cd $GITHUB_WORKSPACE
         ./ips_to_cfkv.sh HK_marked.txt JP_marked.txt KR_marked.txt SG_marked.txt US_marked.txt
         
     - name: Commit and push changes

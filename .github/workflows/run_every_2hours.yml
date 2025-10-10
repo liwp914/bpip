@@ -14,41 +14,59 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # 更新到v4版本
-
+      uses: actions/checkout@v4
+    
+    - name: Debug environment
+      run: |
+        echo "工作区: $GITHUB_WORKSPACE"
+        echo "工作目录: $(pwd)"
+        echo "环境变量:"
+        env | sort
+    
+    - name: Verify file existence
+      run: |
+        echo "当前目录内容:"
+        ls -la
+        echo ""
+        echo "查找Python文件:"
+        find . -name "*.py"
+    
     - name: Delete old data
       run: |
-        rm -rf ./ip*
+        # 只删除数据目录
+        rm -rf ./ip-info
         rm -rf ./ips
-
+    
     - name: Get source data
       run: |
         wget -N https://zip.cm.edu.kg -O ip.zip
         unzip ip.zip -d ./ips
         rm ip.zip
-
+    
     - name: Set up Python
-      uses: actions/setup-python@v4  # 更新Python设置Action
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-
+    
     - name: Install dependencies
       run: pip install requests pandas tqdm
-
+    
     - name: Run IP info collector
-      run: python ip_info_collector.py
-
+      run: |
+        # 使用绝对路径
+        python $GITHUB_WORKSPACE/ip_info_collector.py
+    
     - name: Set upload script permissions
-      run: chmod +x ips_to_cfkv.sh
-
+      run: chmod +x $GITHUB_WORKSPACE/ips_to_cfkv.sh
+    
     - name: Upload files to Cloudflare
       env:
         CF_DOMAIN: ${{ secrets.CF_DOMAIN }}
         CF_TOKEN: ${{ secrets.CF_TOKEN }}
       run: |
-        # 使用脚本上传文件
-        ./ips_to_cfkv.sh
-
+        # 使用绝对路径
+        $GITHUB_WORKSPACE/ips_to_cfkv.sh
+    
     - name: Commit and push changes
       run: |
         git config --local user.email "action@github.com"

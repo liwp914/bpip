@@ -1,108 +1,58 @@
 name: Collect and Upload IP Info
 
 on:
+  workflow_dispatch:
   schedule:
-    # 每2小时运行一次 (UTC时间)
-    - cron: '0 */2 * * *'
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 */2 * * *'  # 每两小时运行一次（UTC时间）
+
+permissions:
+  contents: write
 
 jobs:
-  run-scripts:
+  process-and-upload:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Debug workspace structure
-      run: |
-        echo "当前工作目录: $(pwd)"
-        echo "工作区根目录: $GITHUB_WORKSPACE"
-        echo "=== 目录结构 ==="
-        ls -la
-        echo "=== 查找脚本文件 ==="
-        find . -name "*.py" -o -name "*.sh" | sort
-      
+    - name: Checkout code
+      uses: actions/checkout@v4  # 更新到v4版本
+
     - name: Delete old data
       run: |
         rm -rf ./ip*
         rm -rf ./ips
-        
+
     - name: Get source data
       run: |
         wget -N https://zip.cm.edu.kg -O ip.zip
         unzip ip.zip -d ./ips
         rm ip.zip
-        
+
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4  # 更新Python设置Action
       with:
-        python-version: '3.x'
-        
+        python-version: '3.10'
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests pandas tqdm
-        
-    - name: Verify script locations
-      run: |
-        echo "=== 脚本文件验证 ==="
-        ls -la *.py *.sh 2>/dev/null || echo "当前目录无脚本文件"
-        echo "=== 递归查找 ==="
-        find . -name "ip_info_collector.py" -o -name "ips_to_cfkv.sh" | while read file; do
-          echo "找到文件: $file"
-          ls -la "$file"
-        done
-        
-    - name: Run IP Collector
-      run: |
-        # 确保在仓库根目录运行Python脚本
-        if [ -f "ip_info_collector.py" ]; then
-          echo "运行Python脚本..."
-          python ip_info_collector.py
-        else
-          echo "错误: ip_info_collector.py 未找到"
-          find . -name "ip_info_collector.py"
-          exit 1
-        fi
-        
-    - name: Prepare for upload
-      run: |
-        echo "=== 准备上传步骤 ==="
-        echo "当前目录: $(pwd)"
-        echo "输出目录内容:"
-        ls -la ip-info/443/ 2>/dev/null || echo "输出目录尚未创建"
-        
-    - name: Run Upload Script
+      run: pip install requests pandas tqdm
+
+    - name: Run IP info collector
+      run: python ip_info_collector.py
+
+    - name: Set upload script permissions
+      run: chmod +x ips_to_cfkv.sh
+
+    - name: Upload files to Cloudflare
       env:
         CF_DOMAIN: ${{ secrets.CF_DOMAIN }}
         CF_TOKEN: ${{ secrets.CF_TOKEN }}
       run: |
-        # 确保脚本存在并设置权限
-        if [ -f "ips_to_cfkv.sh" ]; then
-          echo "设置脚本执行权限..."
-          chmod +x ips_to_cfkv.sh
-          echo "运行上传脚本..."
-          ./ips_to_cfkv.sh HK_marked.txt JP_marked.txt KR_marked.txt SG_marked.txt US_marked.txt
-        else
-          echo "错误: ips_to_cfkv.sh 未找到"
-          echo "当前目录文件列表:"
-          ls -la
-          echo "递归查找脚本文件:"
-          find . -name "*.sh"
-          exit 1
-        fi
-        
+        # 使用脚本上传文件
+        ./ips_to_cfkv.sh
+
     - name: Commit and push changes
       run: |
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions"
-        # 添加所有更改的文件
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
         git add .
-        # 检查是否有更改需要提交
-        if git diff-index --quiet HEAD --; then
-          echo "没有更改需要提交"
-        else
-          git commit -m "自动更新IP信息文件 $(date)"
-          git push
-        fi
+        git commit -am "自动更新IP信息文件"
+        git push

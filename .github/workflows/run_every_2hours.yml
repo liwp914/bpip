@@ -14,12 +14,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Debug current directory
+    - name: Debug workspace structure
       run: |
-        echo "Current directory: $(pwd)"
-        echo "Files in directory:"
+        echo "当前工作目录: $(pwd)"
+        echo "工作区根目录: $GITHUB_WORKSPACE"
+        echo "=== 目录结构 ==="
         ls -la
-        
+        echo "=== 查找脚本文件 ==="
+        find . -name "*.py" -o -name "*.sh" | sort
+      
     - name: Delete old data
       run: |
         rm -rf ./ip*
@@ -41,28 +44,65 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests pandas tqdm
         
-    - name: Set file permissions
+    - name: Verify script locations
       run: |
-        chmod +x ips_to_cfkv.sh
-        chmod +x ip_info_collector.py
+        echo "=== 脚本文件验证 ==="
+        ls -la *.py *.sh 2>/dev/null || echo "当前目录无脚本文件"
+        echo "=== 递归查找 ==="
+        find . -name "ip_info_collector.py" -o -name "ips_to_cfkv.sh" | while read file; do
+          echo "找到文件: $file"
+          ls -la "$file"
+        done
         
     - name: Run IP Collector
       run: |
-        cd $GITHUB_WORKSPACE
-        python ip_info_collector.py
+        # 确保在仓库根目录运行Python脚本
+        if [ -f "ip_info_collector.py" ]; then
+          echo "运行Python脚本..."
+          python ip_info_collector.py
+        else
+          echo "错误: ip_info_collector.py 未找到"
+          find . -name "ip_info_collector.py"
+          exit 1
+        fi
+        
+    - name: Prepare for upload
+      run: |
+        echo "=== 准备上传步骤 ==="
+        echo "当前目录: $(pwd)"
+        echo "输出目录内容:"
+        ls -la ip-info/443/ 2>/dev/null || echo "输出目录尚未创建"
         
     - name: Run Upload Script
       env:
         CF_DOMAIN: ${{ secrets.CF_DOMAIN }}
         CF_TOKEN: ${{ secrets.CF_TOKEN }}
       run: |
-        cd $GITHUB_WORKSPACE
-        ./ips_to_cfkv.sh HK_marked.txt JP_marked.txt KR_marked.txt SG_marked.txt US_marked.txt
+        # 确保脚本存在并设置权限
+        if [ -f "ips_to_cfkv.sh" ]; then
+          echo "设置脚本执行权限..."
+          chmod +x ips_to_cfkv.sh
+          echo "运行上传脚本..."
+          ./ips_to_cfkv.sh HK_marked.txt JP_marked.txt KR_marked.txt SG_marked.txt US_marked.txt
+        else
+          echo "错误: ips_to_cfkv.sh 未找到"
+          echo "当前目录文件列表:"
+          ls -la
+          echo "递归查找脚本文件:"
+          find . -name "*.sh"
+          exit 1
+        fi
         
     - name: Commit and push changes
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "GitHub Actions"
-        git add ip-info/443/*.txt
-        git commit -m "Update IP info files"
-        git push
+        # 添加所有更改的文件
+        git add .
+        # 检查是否有更改需要提交
+        if git diff-index --quiet HEAD --; then
+          echo "没有更改需要提交"
+        else
+          git commit -m "自动更新IP信息文件 $(date)"
+          git push
+        fi

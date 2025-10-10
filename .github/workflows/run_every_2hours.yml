@@ -14,6 +14,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Delete old data
+      run: |
+        rm -rf ./ip*
+        rm -rf ./ips
+        
+    - name: Get source data
+      run: |
+        wget -N https://zip.cm.edu.kg -O ip.zip
+        unzip ip.zip -d ./ips
+        rm ip.zip
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
